@@ -89,3 +89,8 @@ For each prompt, generate:
 5. [Topic-Based Watermarks for Large Language Models — Wang et al. (2024)](https://arxiv.org/abs/2404.02138)
 
 ---
+
+
+## Folder Structure
+
+prompt-token-watermarking/ │ ├── README.md ├── LICENSE ├── requirements.txt # Python libraries needed (e.g., torch, transformers, scikit-learn) ├── .gitignore # Ignore models, data, logs, etc. │ ├── data/ │ ├── prompts/ # The ~1000 input prompts (raw text files or jsonl) │ ├── outputs_unmarked/ # Model outputs without any watermark │ ├── outputs_prompt/ # Model outputs with prompt-based watermark │ ├── outputs_token/ # Model outputs with token-level watermark │ └── detection_results/ # Detection scores, confusion matrices, evaluation artifacts │ ├── src/ │ ├── init.py │ ├── generate_unmarked.py # Script to generate normal outputs │ ├── generate_prompt_watermark.py # Script to apply prompt watermark and generate outputs │ ├── generate_token_watermark.py # Script to apply token watermark and generate outputs │ ├── train_detector.py # Script to train BERTa classifier for prompt-watermark │ ├── zero_shot_detection.py # Script for Zhong et al. style zero-shot detection │ └── utils.py # Helper functions (loading models, prompts, random seeds, etc.) │ ├── models/ │ └── berta_detector/ # Saved weights of the detection model │ ├── experiments/ │ ├── robustness_tests/ # Paraphrasing, editing attacks, etc. │ └── ablation_studies/ # Experiments varying watermarking strategies │ ├── reports/ │ └── final_report.pdf # Final report and figures
