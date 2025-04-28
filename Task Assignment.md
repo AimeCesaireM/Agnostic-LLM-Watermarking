@@ -1,5 +1,5 @@
 ## Person 1: Token-Level Watermarking (Approach B)
-**(Tentative: Aime Cesaire Mugishawayo)**
+**(Tentative: Miro Babin)**
 
 | Task | Description |
 |:---|:---|
@@ -23,7 +23,7 @@
 ---
 
 ## Person 3: Detection, Evaluation, and Report Writing
-**(Tentative: Miro Babin)**
+**(Tentative: Aime Cesaire Mugishawayo)**
 
 | Task | Description |
 |:---|:---|
