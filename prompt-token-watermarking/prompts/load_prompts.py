@@ -32,7 +32,7 @@ def good_prompt(p):
         return False
     return True
 
-output_path = "prompts_more.jsonl"
+output_path = "prompts_all.jsonl"
 count = 0
 
 with open(output_path, "w") as out:
