@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # ---------- Config ----------
 MODEL_ID = "TheBloke/Mistral-7B-Instruct-v0.1-GPTQ"
-INPUT_PATH = "../prompts/500_sample.jsonl"
+INPUT_PATH = "../prompts/2000_sample.jsonl"
 OUTPUT_PATH = "outputs/vanilla_responses.jsonl"
 MAX_TOKENS = 300
 TEMPERATURE = 0.7
@@ -43,6 +43,7 @@ def main():
 
     with open(OUTPUT_PATH, "w") as out:
         for i, prompt in enumerate(tqdm(prompts, desc="Generating vanilla responses")):
+            print(i)
             response = generate_response(prompt, tokenizer, model)
             json.dump({"prompt": prompt, "response": response}, out)
             out.write("\n")
