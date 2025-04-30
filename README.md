@@ -41,7 +41,7 @@ Curate ~1,000 short prompts from OpenAI Evals and WikiText‑103 validation set.
 
 For each prompt, generate:
 - Unmarked (control) text
-- Prompt‑watermarked text (Approach A via GPT‑3.5‑Turbo)
+- Prompt‑watermarked text (Approach A via meta-llama/Llama-3.1-8B-Instruct)
 - Token‑watermarked text (Approach B via Llama‑2‑7B‑Chat)
 
 ### Embedding the Watermarks
