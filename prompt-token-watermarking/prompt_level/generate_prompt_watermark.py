@@ -1,58 +1,64 @@
-# src/generate_prompt_watermark.py
-import os
-import json
-from dotenv import load_dotenv
-from openai import OpenAI
-from utils import PromptWrapper, hidden_and_echo_rule, rare_word_rule
+# prompt_level/generate_prompt_watermark.py
 
+import json
+import os
+from openai import OpenAI
+from utils import PromptWrapper, hidden_and_echo_rule
+from dotenv import load_dotenv
 
 def main():
-    # Load environment variables (including OPENAI_API_KEY)
+     # Load environment variables (including OPENAI_API_KEY)
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("Missing OPENAI_API_KEY in environment")
+        
+    # Initialize client against HF NeBiUS router
+    client = OpenAI(
+        base_url="https://router.huggingface.co/nebius/v1",
+        api_key=api_key,
+    )
 
-    # Initialize OpenAI client
-    api_key = api_key
-    client = OpenAI(api_key=api_key)
-
-    # Initialize the prompt wrapper with watermark rules
+    # Watermarking rules
     rules = [hidden_and_echo_rule]
     wrapper = PromptWrapper(rules)
 
-    prompts_dir = "data/prompts"
-    output_dir = "data/outputs_prompt"
-    os.makedirs(output_dir, exist_ok=True)
+    input_path = "prompts/prompts_all.jsonl"        # one-prompt-per-line JSONL
+    output_path = "watermarked_responses/prompt_watermarked_responses.jsonl"     # will accumulate all outputs here
 
-    # Process each prompt file
-    for fname in os.listdir(prompts_dir):
-        if not fname.endswith(".txt"):
-            continue
+    with open(input_path, "r", encoding="utf-8") as fin, \
+         open(output_path, "w", encoding="utf-8") as fout:
 
-        # Read the original prompt
-        path = os.path.join(prompts_dir, fname)
-        with open(path, "r", encoding="utf-8") as f:
-            original = f.read().strip()
+        for line in fin:
+            line = line.strip()
+            if not line:
+                continue
 
-        # Wrap the prompt to inject instruction, hidden chars, and rare words
-        wm_prompt = wrapper.wrap(original)
+            # Parse the original prompt
+            record = json.loads(line)
+            original = record.get("prompt", "")
 
-        # Generate with GPT-3.5-Turbo
-        response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": wm_prompt}]
-    )
-        text_out = response.choices[0].message.content
+            # Wrap it
+            wm_prompt = wrapper.wrap(original)
 
-        # Save wrapped prompt and model output
-        out_name = os.path.splitext(fname)[0] + ".jsonl"
-        out_path = os.path.join(output_dir, out_name)
-        with open(out_path, "w", encoding="utf-8") as fo:
-            json.dump({"prompt": wm_prompt, "response": text_out}, fo, ensure_ascii=False)
+            # Send to the model
+            response = client.chat.completions.create(
+                model="meta-llama/Meta-Llama-3.1-8B-Instruct-fast",
+                messages=[{"role": "user", "content": wm_prompt}],
+                max_tokens=512,
+            )
+            text_out = response.choices[0].message.content
 
-    print("✅ All prompts processed.")
+            # Write out prompt + response as JSONL
+            fout.write(
+                json.dumps(
+                    {"prompt": original, "response": text_out},
+                    ensure_ascii=False
+                )
+                + "\n"
+            )
 
+    print("✅ Finished generating watermarking responses. Check watermarked_responses folder")
 
 if __name__ == "__main__":
     main()
