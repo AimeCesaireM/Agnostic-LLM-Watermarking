@@ -1,82 +1,79 @@
 # src/utils.py
+"""
+Utility module for prompt watermarking.
+"""
 import hashlib
 import random
-from typing import List, Callable
+from typing import List, Tuple, Callable, Union
+
+# Types for watermarking rules
+RuleOutput = Union[str, Tuple[str, str]]
+Rule = Callable[[str, random.Random], RuleOutput]
 
 class PromptWrapper:
     """
-    Wraps an input prompt by applying a sequence of watermarking rules,
-    each deterministic based on the prompt content alone.
+    Applies a sequence of watermarking rules to a prompt.
+    Each rule can add system instructions and modify the prompt text.
     """
-    def __init__(self, rules: List[Callable[[str, random.Random], str]]):
+    def __init__(self, rules: List[Rule]):
         self.rules = rules
 
-    def _make_rng(self, prompt: str) -> random.Random:
+    def _seed_from_prompt(self, prompt: str) -> random.Random:
         """
-        Derive a reproducible seed from the prompt.
+        Create a deterministic random generator based on the prompt's content.
         """
-        digest = hashlib.sha256(prompt.encode()).hexdigest()
+        digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         seed = int(digest[:16], 16)
         return random.Random(seed)
 
-    def wrap(self, prompt: str) -> str:
+    def wrap(self, prompt: str) -> Tuple[str, str]:
         """
-        Applies all rules in sequence to the prompt.
+        Apply all rules in sequence to the prompt.
+        Returns a tuple: (combined_system_instructions, modified_prompt).
         """
-        rng = self._make_rng(prompt)
-        wrapped = prompt
+        rng = self._seed_from_prompt(prompt)
+        system_messages = []
+        content = prompt
+
         for rule in self.rules:
-            wrapped = rule(wrapped, rng)
-        return wrapped
+            result = rule(content, rng)
+            if isinstance(result, tuple):
+                sys_instr, content = result
+                system_messages.append(sys_instr)
+            else:
+                content = result
+
+        combined_system = "\n".join(system_messages)
+        return combined_system, content
 
 
-def hidden_and_echo_rule(prompt: str, rng: random.Random) -> str:
+def hidden_and_echo_rule(prompt: str, rng: random.Random) -> Tuple[str, str]:
     """
-    Prepend an instruction telling the model to echo all characters (including invisible ones)
-    and then sprinkle zero-width characters into the combined prompt.
+    Watermarking rule that:
+    1) Inserts zero-width characters into the prompt.
+    Returns: (system_instruction, modified_prompt)
     """
-    # Instruction for the model
-    instruction = (
-        "Please echo every zero-width or invisible characters you see in this prompt, "
-        "when you answer my prompt.\n\n"
-    )
-    # Prepare content for hidden char insertion
-    content = prompt
+    # Zero-width characters to use
+    ZW_CHARS = ["\u200B", "\u200C", "\uFEFF"]
+    chars = list(prompt)
 
-    # Zero-width characters to insert
-    zero_width_chars = ['\u200B', '\u200C', '\uFEFF']
-    # Decide number of insertions: at least 1 per 100 chars
-    n_insert = max(1, len(content) // 100)
-    positions = rng.sample(range(len(content)), k=n_insert)
-
-    out = list(content)
-    offset = 0
+    # Insert at least one zero-width character every 10 characters
+    num_inserts = max(1, len(chars) // 10)
+    positions = rng.sample(range(len(chars)), k=num_inserts)
     for pos in sorted(positions):
-        zw = rng.choice(zero_width_chars)
-        out.insert(pos + offset, zw)
-        offset += 1
-    hidden_content = "".join(out)
+        chars.insert(pos, rng.choice(ZW_CHARS))
 
-    # Combine instruction and hidden-content prompt
-    return instruction + hidden_content
+    # Reconstruct the prompt with invisible chars
+    new_prompt = "".join(chars)
 
+    # Add two spaces after the 12th word, if exists
+    parts = new_prompt.split(" ")
+    if len(parts) > 12:
+        parts[11] += "  "
+    final_prompt = " ".join(parts)
 
-def rare_word_rule(prompt: str, rng: random.Random) -> str:
-    """
-    Insert a rare word every ~12 words, with 50% probability per slot.
-    """
-    rare_words = [
-        "sesquipedalian", "ineffable", "antediluvian",
-        "perspicacious", "lachrymose", "quixotic",
-        "obfuscate", "perfidious", "recalcitrant"
-    ]
-    words = prompt.split()
-    interval = 12
-    out = []
-    for idx, w in enumerate(words):
-        out.append(w)
-        if idx > 0 and idx % interval == 0 and rng.random() < 0.5:
-            out.append(rng.choice(rare_words))
-    return " ".join(out)
+    system_instruction = (
+        "Insert some zero width characters in your response, for example 0x200B, 0x200C, 0xFEFF characters."
+    )
 
-
+    return system_instruction, final_prompt

@@ -1,64 +1,73 @@
 # prompt_level/generate_prompt_watermark.py
-
-import json
+"""
+Generates watermarked responses for prompts using OpenAI's Chat API.
+"""
 import os
-from openai import OpenAI
-from utils import PromptWrapper, hidden_and_echo_rule
+import json
 from dotenv import load_dotenv
+from openai import OpenAI
+
+from utils import PromptWrapper, hidden_and_echo_rule
 
 def main():
-     # Load environment variables (including OPENAI_API_KEY)
+    # Load environment variables from .env file
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise RuntimeError("Missing OPENAI_API_KEY in environment")
-        
-    # Initialize client against HF NeBiUS router
-    client = OpenAI(
-        base_url="https://router.huggingface.co/nebius/v1",
-        api_key=api_key,
-    )
+        raise RuntimeError("OPENAI_API_KEY not set in environment.")
 
-    # Watermarking rules
+    # Initialize OpenAI client
+    client = OpenAI(api_key=api_key)
+
+    # Initialize watermarking wrapper with rules
     rules = [hidden_and_echo_rule]
     wrapper = PromptWrapper(rules)
 
-    input_path = "prompts/prompts_all.jsonl"        # one-prompt-per-line JSONL
-    output_path = "watermarked_responses/prompt_watermarked_responses.jsonl"     # will accumulate all outputs here
+    # Define input and output file paths
+    input_file = "prompts/2000_sample.jsonl"
+    output_file = "watermarked_responses/prompt_watermarked_responses.jsonl"
 
-    with open(input_path, "r", encoding="utf-8") as fin, \
-         open(output_path, "w", encoding="utf-8") as fout:
+    # Ensure output directory exists
+    output_dir = os.path.dirname(output_file)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
 
+    # Process each prompt in the input file
+    with open(input_file, "r", encoding="utf-8") as fin, \
+         open(output_file, "w", encoding="utf-8") as fout:
         for line in fin:
             line = line.strip()
             if not line:
                 continue
 
-            # Parse the original prompt
-            record = json.loads(line)
-            original = record.get("prompt", "")
+            try:
+                data = json.loads(line)
+                prompt_text = data["prompt"]
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Skipping invalid line: {e}")
+                continue
 
-            # Wrap it
-            wm_prompt = wrapper.wrap(original)
+            # Generate system instruction and modified prompt
+            system_msg, user_msg = wrapper.wrap(prompt_text)
 
-            # Send to the model
+            # Request completion from OpenAI
             response = client.chat.completions.create(
-                model="meta-llama/Meta-Llama-3.1-8B-Instruct-fast",
-                messages=[{"role": "user", "content": wm_prompt}],
-                max_tokens=512,
-            )
-            text_out = response.choices[0].message.content
-
-            # Write out prompt + response as JSONL
-            fout.write(
-                json.dumps(
-                    {"prompt": original, "response": text_out},
-                    ensure_ascii=False
-                )
-                + "\n"
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user",   "content": user_msg}
+                ],
+                max_tokens=512
             )
 
-    print("✅ Finished generating watermarking responses. Check watermarked_responses folder")
+            # Extract the text and write to output
+            output_text = response.choices[0].message.content
+            fout.write(json.dumps(
+                {"prompt": prompt_text, "response": output_text},
+                ensure_ascii=False
+            ) + "\n")
+
+    print("✅ Watermark generation complete.")
 
 if __name__ == "__main__":
     main()
