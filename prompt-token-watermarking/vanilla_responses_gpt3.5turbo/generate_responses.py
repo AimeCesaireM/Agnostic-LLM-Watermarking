@@ -9,7 +9,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Use the new OpenAI client interface
 client = openai.OpenAI()
 
-INPUT_FILE = "../prompts/1000_sample.jsonl"
+INPUT_FILE = "../prompts/2000_sample.jsonl"
 OUTPUT_FILE = "vanilla_responses.jsonl"
 
 MODEL = "gpt-3.5-turbo"
