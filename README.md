@@ -83,9 +83,9 @@ For each prompt, generate:
 
 ## 📚 References
 1. [A Watermark for Large Language Models — Kirchenbauer et al. (2023)](https://arxiv.org/abs/2301.10226)
-2. [Scalable Watermarking for Identifying Large Language Model Outputs — Lester et al. (2024)](https://arxiv.org/abs/2401.10350)
+2. [Scalable Watermarking for Identifying Large Language Model Outputs — Lester et al. (2024)](https://pmc.ncbi.nlm.nih.gov/articles/PMC11499265/)
 3. [Watermarking Language Models through Language Models — Zhong et al. (2024)](https://arxiv.org/abs/2411.05091)
-4. [A Robust Semantics-Based Watermark for LLMs Against Paraphrasing — Ren et al. (2023)](https://arxiv.org/abs/2309.03157)
+4. [A Robust Semantics-Based Watermark for LLMs Against Paraphrasing — Ren et al. (2023)](https://arxiv.org/abs/2311.08721)
 5. [Topic-Based Watermarks for Large Language Models — Wang et al. (2024)](https://arxiv.org/abs/2404.02138)
 
 ---
