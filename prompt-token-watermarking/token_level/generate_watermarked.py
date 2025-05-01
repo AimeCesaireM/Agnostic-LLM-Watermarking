@@ -19,12 +19,17 @@ TEMPERATURE = 0.7
 TOP_P = 0.95
 
 # Static greenlist
-greenlist_words = ["certainly", "hence", "thus", "furthermore", "indeed", "moreover", "precisely", "the", "purple", "!", "one"]
+greenlist_words = ["the", "certainly", "hence", "thus", "furthermore", "indeed", "moreover", "precisely", "purple", "!", "one"]
 GREENLIST_TOKENS = {}
 for word in greenlist_words:
     token_ids = enc.encode(word)
     for tid in token_ids:
         GREENLIST_TOKENS[tid] = 10 #max possible
+blacklist_words = ["the", "in", "a", "an", ",", "that"]
+for word in blacklist_words:
+    token_ids = enc.encode(word)
+    for tid in token_ids:
+        GREENLIST_TOKENS[tid] = -10 #min possible
 
 def create_logit_bias(greenlist):
     return {str(k): min(10, max(-10, v)) for k, v in greenlist.items()}
